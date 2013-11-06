@@ -50,5 +50,5 @@ TODO: {
     );
 }
 
-module_boilerplate_ok('App-SourceCodeStats/t/boilerplate.t');
+module_boilerplate_ok('lib/App/SourceCodeStats.pm');
 
