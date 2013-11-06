@@ -1,40 +1,147 @@
 package App::SourceCodeStats;
 
-# Created on: 2013-11-06 19:48:06
+# Created on: 2013-11-06 19:52:35
 # Create by:  Ivan Wills
 # $Id$
 # $Revision$, $HeadURL$, $Date$
 # $Revision$, $Source$, $Date$
 
-use strict;
-use warnings;
+use Moose;
+use namespace::autoclean;
 use version;
 use Carp;
 use Scalar::Util;
 use List::Util;
-#use List::MoreUtils;
 use Data::Dumper qw/Dumper/;
 use English qw/ -no_match_vars /;
-use base qw/Exporter/;
+use File::CodeSearch::Files;
 
+our $VERSION = version->new('0.0.1');
 
-our $VERSION     = version->new('0.0.1');
-our @EXPORT_OK   = qw//;
-our %EXPORT_TAGS = ();
-#our @EXPORT      = qw//;
+has path => (
+    is       => 'rw',
+    isa      => 'Path::Class::Dir',
+    required => 1,
+);
+has file_checker => (
+    is      => 'rw',
+    isa     => 'File::CodeSearch::Files',
+    builder => '_file_checker',
+);
 
-sub new {
-	my $caller = shift;
-	my $class  = ref $caller ? ref $caller : $caller;
-	my %param  = @_;
-	my $self   = \%param;
+sub stats {
+    my ($self) = @_;
 
-	bless $self, $class;
+    my @files = $self->get_files;
+    my %stats;
+    my @all_types = grep {$_ ne 'ignore' && $_ ne 'scripting' && $_ ne 'programing'} keys %{ $self->file_checker->type_suffixes };
 
-	return $self;
+    for my $file (@files) {
+        my @types;
+        for my $type (@all_types) {
+            push @types, $type if $self->file_checker->types_match($file, $type);
+        }
+        @types = ('Unknown') if !@types;
+        $stats{$file} = [ map {$self->file_stats($file, $_)} @types ];
+    }
+
+    return %stats;
 }
 
+sub file_stats {
+    my ($self, $file, $type) = @_;
 
+    my ( $dev, $ino, $mode, $nlink, $uid, $gid, $rdev, $size, $atime, $mtime, $ctime, $blksize, $blocks ) = stat($file);
+    my %stats = ( type => $type, bytes => $size );
+
+    return \%stats if -B $file;
+
+    open my $fh, '<', $file or die "Cannot open the file $file: $!";
+
+    LINE:
+    while ( my $line = <$fh> ) {
+        $stats{lines}++;
+        if ( $line =~ /^(\s+)$/ ) {
+            $stats{blank}++;
+            next LINE;
+        }
+        if ( $line =~ /^ \s* \W{1,2} \s* ( \W{1,2} \s* )? $/xms ) {
+            $stats{simple}++;
+        }
+
+        if ( $type =~ m{^(perl|pl|pm|perl|t|cgi)$} ) {
+            $stats{comment}++ if $line =~ /^\s*#/;
+            if ( $line =~ /^=/ ) {
+                $stats{comment}++;
+                while ( my $comment = <$fh> ) {
+                    $stats{lines}++;
+                    $stats{comment}++;
+                    last if $comment =~ /^=cut/;
+                }
+            }
+        }
+        elsif ( $type =~ m{^(pod)$} ) {
+            # pod files are comments if they are not simple or blank
+            $stats{comment}++ if $line !~ /^ \s* \W{1,2} \s* ( \W{1,2} \s* )? $/xms;
+        }
+        elsif ( $type =~ m{^(php)$} ) {
+            $stats{comment}++ if $line =~ m{^\s*(#|//)};
+            if ( $line =~ m{^\s*/\*} ) {
+                $stats{comment}++;
+                unless ( $line =~ m{\*/} ) {
+                    while ( my $comment = <$fh> ) {
+                        $stats{lines}++;
+                        $stats{comment}++;
+                        last if $comment =~ m{\*/};
+                    }
+                }
+            }
+        }
+        elsif ( $type =~ m{^(c|cpp|h|hpp|js)$} ) {
+            if ( $line =~ m{^\s*/\*} ) {
+                $stats{comment}++;
+                unless ( $line =~ m{\*/} ) {
+                    while ( my $comment = <$fh> ) {
+                        $stats{lines}++;
+                        $stats{comment}++;
+                        last if $comment =~ m{\*/};
+                    }
+                }
+            }
+            elsif ( $line =~ m{\s*//} ) {
+                $stats{comment}++;
+            }
+        }
+    }
+    close $fh;
+    return \%stats;
+}
+
+sub get_files {
+    my ($self) = @_;
+    my @search = $self->path->children;
+    my @files;
+
+    for my $child (@search) {
+        next if $self->file_checker->types_match($child, 'ignore');
+
+        if ( -d $child ) {
+            push @search, $child->children;
+        }
+        else {
+            push @files, $child;
+        }
+    }
+
+    return @files;
+}
+
+sub _file_checker {
+    my ($self) = @_;
+    return File::CodeSearch::Files->new;
+}
+
+__PACKAGE__->meta->make_immutable;
 
 1;
 
@@ -80,15 +187,6 @@ form "An object of this class represents ...") to give the reader a high-level
 context to help them understand the methods that are subsequently described.
 
 
-=head3 C<new ( $search, )>
-
-Param: C<$search> - type (detail) - description
-
-Return: App::SourceCodeStats -
-
-Description:
-
-=cut
 
 
 =head1 DIAGNOSTICS
