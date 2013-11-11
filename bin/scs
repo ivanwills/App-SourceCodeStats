@@ -58,7 +58,9 @@ sub main {
     }
 
     # do stuff here
-    for my $path (@ARGV || ('.')) {
+    my @dirs = @ARGV ? @ARGV : ('.');
+    for my $path (@dirs) {
+        print "\n$path\n" if @ARGV > 1;
         my %stats = App::SourceCodeStats->new( path => dir($path) )->stats;
 
         simplify(\%stats) if !$option{verbose};
