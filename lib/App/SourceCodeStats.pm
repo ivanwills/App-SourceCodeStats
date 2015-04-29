@@ -149,7 +149,7 @@ __END__
 
 =head1 NAME
 
-App::SourceCodeStats - <One-line description of module's purpose>
+App::SourceCodeStats - Logic for collecting statistics for a project
 
 =head1 VERSION
 
@@ -200,7 +200,6 @@ Patches are welcome.
 =head1 AUTHOR
 
 Ivan Wills - (ivan.wills@gmail.com)
-<Author name(s)>  (<contact address>)
 
 =head1 LICENSE AND COPYRIGHT
 
