@@ -173,14 +173,16 @@ This documentation refers to scs version 0.0.1
 
 =head1 SYNOPSIS
 
-   scs [option]
+   scs [option] [dir ...]
 
  OPTIONS:
+  dir           The directory (or directories) you want to scan. If no
+                directory is passed the current directory is used.
 
-  -v --verbose       Show more detailed option
-     --version       Prints the version information
-     --help          Prints this help information
-     --man           Prints the full documentation for scs
+  -v --verbose  Show more detailed option
+     --version  Prints the version information
+     --help     Prints this help information
+     --man      Prints the full documentation for scs
 
 =head1 DESCRIPTION
 
