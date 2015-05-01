@@ -9,15 +9,11 @@
 use strict;
 use warnings;
 use version;
-use Scalar::Util;
-use List::Util;
-#use List::MoreUtils;
 use Getopt::Long;
 use Pod::Usage;
-use Data::Dumper qw/Dumper/;
 use English qw/ -no_match_vars /;
 use FindBin qw/$Bin/;
-use Path::Class;
+use Path::Tiny;
 use App::SourceCodeStats;
 
 our $VERSION = version->new('0.0.1');
@@ -59,7 +55,7 @@ sub main {
     my @dirs = @ARGV ? @ARGV : ('.');
     for my $path (@dirs) {
         print "\n$path\n" if @ARGV > 1;
-        my %stats = App::SourceCodeStats->new( path => dir($path) )->stats;
+        my %stats = App::SourceCodeStats->new( path => path($path) )->stats;
 
         simplify(\%stats) if !$option{verbose};
 

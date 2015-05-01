@@ -10,9 +10,6 @@ use Moose;
 use namespace::autoclean;
 use version;
 use Carp;
-use Scalar::Util;
-use List::Util;
-use Data::Dumper qw/Dumper/;
 use English qw/ -no_match_vars /;
 use File::CodeSearch::Files;
 
@@ -20,7 +17,7 @@ our $VERSION = version->new('0.0.1');
 
 has path => (
     is       => 'rw',
-    isa      => 'Path::Class::Dir',
+    isa      => 'Path::Tiny',
     required => 1,
 );
 has file_checker => (
