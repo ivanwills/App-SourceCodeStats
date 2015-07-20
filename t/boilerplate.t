@@ -58,5 +58,7 @@ subtest 'Changes' => sub {
     );
 };
 
+module_boilerplate_ok('bin/SourceCodeStats.pl');
+module_boilerplate_ok('bin/scs');
 module_boilerplate_ok('lib/App/SourceCodeStats.pm');
 done_testing();
