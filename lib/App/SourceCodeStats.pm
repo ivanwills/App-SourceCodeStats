@@ -11,7 +11,7 @@ use namespace::autoclean;
 use version;
 use Carp;
 use English qw/ -no_match_vars /;
-use File::CodeSearch::Files;
+use File::TypeCategories;
 
 our $VERSION = version->new('0.0.1');
 
@@ -22,7 +22,7 @@ has path => (
 );
 has file_checker => (
     is      => 'rw',
-    isa     => 'File::CodeSearch::Files',
+    isa     => 'File::TypeCategories',
     builder => '_file_checker',
 );
 
@@ -135,7 +135,7 @@ sub get_files {
 
 sub _file_checker {
     my ($self) = @_;
-    return File::CodeSearch::Files->new;
+    return File::TypeCategories->new;
 }
 
 __PACKAGE__->meta->make_immutable;
