@@ -61,3 +61,17 @@ Debian_CPANTS.txt
 
 # Avoid archives of this distribution
 \bApp-SourceCodeStats-[\d\.\_]+
+
+# Avoid prove saved state file
+.prove
+
+# Other files of interest
+[.].*[.]tag$
+errors.err
+.travis.yml
+vim.sh
+vrc.yml
+tmp*
+temp*
+^MYMETA\.json$
+tags
