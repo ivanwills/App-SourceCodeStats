@@ -5,7 +5,15 @@
 
 =head1 App::SourceCodeStats
 
-Script to show the statistics (such as lines of code, total size in bytes, lines of commants, etc) for a project.
+Script to show the statistics (such as lines of code, total size in bytes,
+lines of commants, etc) for a code project. It analyses the source code
+to find it's details. Knowledge of some basic languages is included:
+
+* Perl
+* Javascript
+* PHP
+* C
+* C++
 
 =head1 INSTALLATION
 
