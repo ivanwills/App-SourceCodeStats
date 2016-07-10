@@ -69,6 +69,8 @@ Debian_CPANTS.txt
 [.].*[.]tag$
 errors.err
 .travis.yml
+.editorconfig
+.vtide.yml
 vim.sh
 vrc.yml
 tmp*
