@@ -11,7 +11,6 @@ my $builder = Module::Build->new(
         'perl'                 => '5.006',
         'File::TypeCategories' => 0,
         'File::chdir'          => '0.1008',
-        'Ivan::Api'            => '0.1',
         'List::MoreUtils'      => '0.33',
         'Moose'                => '2.1402',
         'Path::Tiny'           => 0,

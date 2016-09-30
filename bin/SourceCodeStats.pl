@@ -23,7 +23,6 @@ use Tk;
 use Tk ':eventtypes';
 use Tk::widgets qw/Toplevel LabEntry HList DialogBox NoteBook/;
 use YAML qw/LoadFile DumpFile/;
-use Ivan::Api;
 
 our $VERSION = version->new('0.0.1');
 my ($name)   = $PROGRAM_NAME =~ m{^.*/(.*?)([.].*?)?$}mxs;
@@ -197,7 +196,7 @@ sub scan_directories {
                 return if /(~|old|.sw[ponx])$/;
                 return if $File::Find::name =~ m{ blib }xms;
 
-                my %fstats = Ivan::Api::get_file_stats( $File::Find::name, $option{simplify} );
+                my %fstats = get_file_stats( $File::Find::name, $option{simplify} );
                 for my $type ( keys %fstats ) {
                     for my $stat ( keys %{ $fstats{$type} } ) {
                         $stats{$type}{$stat} += $fstats{$type}{$stat};
@@ -404,6 +403,104 @@ sub menubar_etal {
     return $menu;
 }
 
+sub get_file_stats {
+    my ($file, $simplify) = @_;
+    my %stats;
+    return () unless -e $file;
+
+    my ( $dev, $ino, $mode, $nlink, $uid, $gid, $rdev, $size, $atime, $mtime, $ctime, $blksize, $blocks ) = stat($file);
+
+    return ( binary => { bytes => $size } ) if -B $file;
+
+    open my $fh, '<', $file or die "Cannot open the file $file: $!";
+    my $type;
+    if ( $file =~ /\..{1,5}$/ ) {
+        ($type) = $file =~ /\.([^.]{1,5})$/;
+    }
+    else {
+        my $line = <$fh>;
+        if ( $line =~ /^#!/ ) {
+            ($type) = $line =~ m{/([^/]+?)(\s|$)};    # $type is final string eg perl, sh, bash
+        }
+        else { $type = 'Unknown'; }
+    }
+
+    # simplify the types so that they represent the file type not just the suffix
+    if ($simplify) {
+        $type =
+              ( any { $_ eq $type } qw/pl pm pod cgi fcgi t PL SKIP   / ) ? 'perl'
+            : ( any { $_ eq $type } qw/c h cpp hpp cxx hxx            / ) ? 'c'
+            : ( any { $_ eq $type } qw/sh bash zsh                    / ) ? 'shell'
+            : ( any { $_ eq $type } qw{ttk tmpl tt2 1/dtd tt ftl      } ) ? 'template'
+            : ( any { $_ eq $type } qw/xml xhtml svg xsd wsdl wadl xjb/ ) ? 'XML'
+            : ( any { $_ eq $type } qw/conf yml rc prefs              / ) ? 'Config'
+            : ( any { $_ eq $type } qw/vim add cmds                   / ) ? 'Vim'
+            : ( $type !~ /[a-zA-Z]/                                     ) ? 'Unknown'
+            :                                                          $type;
+    }
+
+    $stats{$type}{bytes} = $size;
+
+    LINE:
+    while ( my $line = <$fh> ) {
+        $stats{$type}{lines}++;
+        if ( $line =~ /^(\s+)$/ ) {
+            $stats{$type}{blank}++;
+            next LINE;
+        }
+        if ( $line =~ /^ \s* \W{1,2} \s* ( \W{1,2} \s* )? $/xms ) {
+            $stats{$type}{simple}++;
+        }
+
+        if ( $type =~ m{^(perl|pl|pm|perl|t|cgi)$} ) {
+            $stats{$type}{comment}++ if $line =~ /^\s*#/;
+            if ( $line =~ /^=/ ) {
+                $stats{$type}{comment}++;
+                while ( my $comment = <$fh> ) {
+                    $stats{$type}{lines}++;
+                    $stats{$type}{comment}++;
+                    last if $comment =~ /^=cut/;
+                }
+            }
+        }
+        elsif ( $type =~ m{^(pod)$} ) {
+            # pod files are comments if they are not simple or blank
+            $stats{$type}{comment}++ if $line !~ /^ \s* \W{1,2} \s* ( \W{1,2} \s* )? $/xms;
+        }
+        elsif ( $type =~ m{^(php)$} ) {
+            $stats{$type}{comment}++ if $line =~ m{^\s*(#|//)};
+            if ( $line =~ m{^\s*/\*} ) {
+                $stats{$type}{comment}++;
+                unless ( $line =~ m{\*/} ) {
+                    while ( my $comment = <$fh> ) {
+                        $stats{$type}{lines}++;
+                        $stats{$type}{comment}++;
+                        last if $comment =~ m{\*/};
+                    }
+                }
+            }
+        }
+        elsif ( $type =~ m{^(c|cpp|h|hpp|js)$} ) {
+            if ( $line =~ m{^\s*/\*} ) {
+                $stats{$type}{comment}++;
+                unless ( $line =~ m{\*/} ) {
+                    while ( my $comment = <$fh> ) {
+                        $stats{$type}{lines}++;
+                        $stats{$type}{comment}++;
+                        last if $comment =~ m{\*/};
+                    }
+                }
+            }
+            elsif ( $line =~ m{\s*//} ) {
+                $stats{$type}{comment}++;
+            }
+        }
+    }
+    close $fh;
+    return %stats;
+}
+
+
 __DATA__
 
 =head1 NAME
@@ -473,6 +570,18 @@ Synchronises the current file with the other directory
 =head3 menubar_etal(I<  >)
 
 Sets up the menu options
+
+=head3 C<get_file_stats ( $file )>
+
+Param: C<$file> - string - The file to analyse
+
+Return: hash - A hash containing all of the files statistics
+
+Description: Reads the supplied file and generates statistics about that
+file including the size, number of lines, number of lines of comments, noise
+lines and the net number of lines of code.
+
+=cut
 
 =head1 DIAGNOSTICS
 
